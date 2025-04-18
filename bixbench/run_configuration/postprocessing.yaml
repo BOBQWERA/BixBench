@@ -1,5 +1,5 @@
-data_path: "data/trajectories/"
-results_dir: "bixbench_results"
+data_path: "data/trajectories/" # TODO: 可修改的
+results_dir: "bixbench_results" # TODO: 可修改的
 debug: true
 # Paper replication configuration
 replicate_paper_results:
@@ -11,10 +11,10 @@ majority_vote:
 # Run comparison configuration
 run_comparison:
   run: true
-  total_questions: 296
+  total_questions: 296 # TODO: 可修改的
   run_name_groups:
-    - ["bixbench-run-3-claude3.7", "bixbench-run-2-claude"]
+    - ["bixbench-run-3-claude3.7", "bixbench-run-2-claude"] # TODO: 可修改的
   group_titles:
-    - "Claude 3.7"
-    - "Claude 3.5"
+    - "Claude 3.7" # TODO: 可修改的
+    - "Claude 3.5" # TODO: 可修改的
   use_zero_shot_baselines: false
