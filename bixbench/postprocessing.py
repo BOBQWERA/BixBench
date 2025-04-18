@@ -319,6 +319,56 @@ async def load_or_process_data(config) -> pd.DataFrame:
     return await process_trajectories(data)
 
 
+def export_evaluation_data(eval_df: pd.DataFrame, results_dir: str) -> None:
+    """
+    导出评估数据为CSV和JSON格式，同时移除不需要的列。
+    
+    Args:
+        eval_df (pd.DataFrame): 评估数据DataFrame
+        results_dir (str): 结果输出目录
+    """
+    # 创建一个副本以避免修改原始DataFrame
+    export_df = eval_df.copy()
+    
+    # 移除不需要的列
+    columns_to_remove = ['md_notebook', 'md_images', 'prompt']
+    for col in columns_to_remove:
+        if col in export_df.columns:
+            export_df.drop(columns=[col], inplace=True)
+    
+    # 导出为CSV
+    csv_path = f"{results_dir}/eval_df_new.csv"
+    export_df.to_csv(csv_path, index=False)
+    print(f"CSV文件已保存到: {csv_path}")
+    
+    # 导出为JSON
+    json_path = f"{results_dir}/eval_df_new.json"
+    
+    # 对于复杂对象，使用更安全的方式转换为JSON
+    def convert_for_json(df):
+        result = []
+        for _, row in df.iterrows():
+            row_dict = {}
+            for col, val in row.items():
+                # 处理非JSON可序列化的值
+                if pd.isna(val):
+                    row_dict[col] = None
+                elif isinstance(val, (bool, int, float, str)):
+                    row_dict[col] = val
+                else:
+                    # 对于复杂对象，转换为字符串
+                    row_dict[col] = str(val)
+            result.append(row_dict)
+        return result
+    
+    # 转换为JSON并保存
+    json_data = convert_for_json(export_df)
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(json_data, f, ensure_ascii=False, indent=2)
+    
+    print(f"JSON文件已保存到: {json_path}")
+
+
 async def main(config_path: str):
     """
     Main function to run BixBench postprocessing based on YAML configuration.
@@ -342,7 +392,8 @@ async def main(config_path: str):
 
     # Save intermediary processed data for debugging
     if config.debug | (config.replicate_paper_results.from_trajectories):
-        eval_df.to_csv(f"{results_dir}/eval_df_new.csv", index=False)
+        # 使用新的导出函数替代原来的直接保存
+        export_evaluation_data(eval_df, results_dir)
 
     # Run majority vote if configured
     if config.majority_vote.run:
