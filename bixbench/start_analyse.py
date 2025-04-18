@@ -133,9 +133,17 @@ async def load_and_filter_capsules(args):
 async def run_selected_capsules(config_path, capsules):
     """直接运行指定的胶囊，无需修改generate_trajectories.py文件"""
     try:
-        # 导入所需模块
-        from bixbench.generate_trajectories import TrajectoryGenerator
+        # 导入所需模块 - 使用本地导入
+        script_dir = Path(__file__).parent
+        sys.path.insert(0, str(script_dir.parent))  # 将父目录添加到sys.path
+        
+        # 动态导入 TrajectoryGenerator
         import importlib.util
+        generate_trajectories_path = script_dir / "generate_trajectories.py"
+        spec = importlib.util.spec_from_file_location("generate_trajectories", generate_trajectories_path)
+        generate_trajectories_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(generate_trajectories_module)
+        TrajectoryGenerator = generate_trajectories_module.TrajectoryGenerator
         
         # 加载配置
         config_path = Path(config_path)
@@ -160,7 +168,9 @@ async def run_selected_capsules(config_path, capsules):
             
         return True
     except Exception as e:
+        import traceback
         print(f"运行指定胶囊时出错: {e}")
+        print(traceback.format_exc())
         return False
 
 
