@@ -2,6 +2,50 @@
 
 `start_analyse.py` 是一个用于简化 BixBench 评测流程的工具，可以帮助用户快速配置、运行和评估各种 LLM 模型在 BixBench 基准测试上的表现。
 
+## 前置准备工作
+
+在使用 BixBench 分析工具前，请确保完成以下准备工作：
+
+1. **服务器环境**：在 deepomix 服务器上运行本工具
+   ```bash
+   # 登录到 deepomix 服务器
+   ssh {username}@47.108.50.84
+   ```
+
+2. **Docker环境**：进入已有的 Docker 容器环境
+   ```bash
+   # 进入 Docker 容器
+   docker exec -it 00c31 bash
+   ```
+
+3. **API密钥设置**：设置必要的环境变量
+   ```bash
+   # 设置 OpenAI API 密钥
+   export OPENAI_API_KEY='your_api_key_here'
+   ```
+
+4. **验证环境**：确认环境变量已正确设置
+   ```bash
+   # 检查环境变量
+   echo $OPENAI_API_KEY
+   ```
+
+## ⚠️ 重要说明 - 运行名称 ⚠️
+
+**每次运行工具时，必须修改`--run_name`参数，确保使用唯一的运行名称。**
+
+原因：
+- 相同的`run_name`会导致数据覆盖，丢失之前的评测结果
+- 使用不同的`run_name`可以保留多次评测的历史记录
+- 便于后续比较不同模型或配置的性能差异
+
+推荐的命名格式：
+```
+bixbench-run-{模型名称}-{日期}-{序号}
+```
+
+例如：`bixbench-run-gpt4o-20231015-1`
+
 ## 功能特点
 
 1. 自动生成配置文件：根据命令行参数生成轨迹生成和后处理的 YAML 配置文件
@@ -21,7 +65,7 @@ python bixbench/start_analyse.py --run_name RUN_NAME --llm_model MODEL_NAME [选
 
 ### 必填参数
 
-- `--run_name`: 运行名称，如 "bixbench-run-1-gpt4o"
+- `--run_name`: 运行名称，如 "bixbench-run-1-gpt4o"（**每次运行必须修改为新的唯一名称**）
 - `--llm_model`: LLM 模型名称，如 "gpt-4o", "claude-3-sonnet" 等
 
 ### 可选参数
@@ -37,25 +81,25 @@ python bixbench/start_analyse.py --run_name RUN_NAME --llm_model MODEL_NAME [选
 1. 运行单个模型评测所有胶囊：
 
 ```bash
-python bixbench/start_analyse.py --run_name bixbench-run-gpt4o --llm_model gpt-4o
+python bixbench/start_analyse.py --run_name bixbench-run-gpt4o-20231015-1 --llm_model gpt-4o
 ```
 
 2. 运行特定模型评测特定胶囊，并使用 MCQ 模式：
 
 ```bash
-python bixbench/start_analyse.py --run_name bixbench-run-claude --llm_model claude-3-sonnet --capsule_mode mcq --short_ids bix-1 bix-3
+python bixbench/start_analyse.py --run_name bixbench-run --llm_model gpt-4o --capsule_mode mcq --short_ids bix-1 bix-3
 ```
 
 3. 仅生成轨迹，不进行后处理：
 
 ```bash
-python bixbench/start_analyse.py --run_name bixbench-run-llama --llm_model llama-3-70b --skip_postprocessing
+python bixbench/start_analyse.py --run_name bixbench-run --llm_model gpt-4o --skip_postprocessing
 ```
 
 4. 仅进行后处理，不生成轨迹：
 
 ```bash
-python bixbench/start_analyse.py --run_name bixbench-run-gpt4o --llm_model gpt-4o --skip_generation
+python bixbench/start_analyse.py --run_name bixbench-run --llm_model gpt-4o --skip_generation
 ```
 
 ## 工作流程说明
@@ -84,7 +128,9 @@ python bixbench/start_analyse.py --run_name bixbench-run-gpt4o --llm_model gpt-4
 
 ## 注意事项
 
+- **重要**：每次运行评测时，必须修改`--run_name`参数值，避免覆盖之前的评测结果
 - 确保已安装所有必要依赖，如 datasets、pyyaml 等
 - 如果使用 short_ids 筛选胶囊，确保指定的 ID 存在
 - 建议在运行大规模评测前，先用少量胶囊进行测试
-- 结果将保存在 `bixbench_results_[RUN_NAME]` 目录中 
+- 结果将保存在 `bixbench_results_[RUN_NAME]` 目录中
+- 对于不同的模型提供商，可能需要设置不同的API密钥环境变量 
