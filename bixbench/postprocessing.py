@@ -87,19 +87,42 @@ async def process_trajectories(df: pd.DataFrame) -> pd.DataFrame:
     eval_df = utils.create_eval_df(df)
     eval_df = await utils.run_eval_loop(eval_df)
 
-    # Create correct column for open ended questions
-    eval_df.loc[eval_df.question_format == "open", "correct"] = eval_df.loc[
-        eval_df.question_format == "open", "llm_answer"
-    ].apply(lambda x: x == "1")
-    # Extract XML from LLM MCQ answers
-    eval_df.loc[eval_df.question_format == "mcq", "llm_answer"] = eval_df.loc[
-        eval_df.question_format == "mcq", "llm_answer"
-    ].apply(utils.xml_extract)
-    # Compare LLM answers to ideal answers
-    eval_df.loc[eval_df.question_format == "mcq", "correct"] = (
-        eval_df.loc[eval_df.question_format == "mcq", "llm_answer"]
-        == eval_df.loc[eval_df.question_format == "mcq", "correct_letter"]
-    )
+    # 创建correct列，根据question_format分别处理
+    # 原代码使用pandas条件索引：
+    # eval_df.loc[eval_df.question_format == "open", "correct"] = eval_df.loc[
+    #     eval_df.question_format == "open", "llm_answer"
+    # ].apply(lambda x: x == "1")
+    # # Extract XML from LLM MCQ answers
+    # eval_df.loc[eval_df.question_format == "mcq", "llm_answer"] = eval_df.loc[
+    #     eval_df.question_format == "mcq", "llm_answer"
+    # ].apply(utils.xml_extract)
+    # # Compare LLM answers to ideal answers
+    # eval_df.loc[eval_df.question_format == "mcq", "correct"] = (
+    #     eval_df.loc[eval_df.question_format == "mcq", "llm_answer"]
+    #     == eval_df.loc[eval_df.question_format == "mcq", "correct_letter"]
+    # )
+    
+    # 使用更清晰的if-else结构处理不同类型的问题
+    eval_df['correct'] = False  # 初始化correct列为False
+    
+    # 分组处理不同类型的问题
+    open_mask = eval_df.question_format == "open"
+    mcq_mask = eval_df.question_format == "mcq"
+    
+    if open_mask.any():
+        # 处理开放式问题
+        open_df = eval_df[open_mask]
+        eval_df.loc[open_mask, "correct"] = open_df["llm_answer"].apply(lambda x: x == "1")
+    
+    if mcq_mask.any():
+        # 处理多选题问题
+        mcq_df = eval_df[mcq_mask]
+        # 提取XML
+        eval_df.loc[mcq_mask, "llm_answer"] = mcq_df["llm_answer"].apply(utils.xml_extract)
+        # 比较答案
+        eval_df.loc[mcq_mask, "correct"] = (
+            eval_df.loc[mcq_mask, "llm_answer"] == eval_df.loc[mcq_mask, "correct_letter"]
+        )
 
     return eval_df
 
