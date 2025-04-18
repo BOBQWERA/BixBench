@@ -130,65 +130,38 @@ async def load_and_filter_capsules(args):
     return bixbench
 
 
-def modify_generate_trajectories_script(capsules):
-    """临时修改generate_trajectories.py以便只运行指定的胶囊"""
-    script_dir = Path(__file__).parent
-    generate_trajectories_path = script_dir / "generate_trajectories.py"
-    
-    # 读取原始脚本内容
-    with open(generate_trajectories_path, "r", encoding="utf-8") as f:
-        content = f.read()
-    
-    # 保存原始脚本备份
-    with open(f"{generate_trajectories_path}.bak", "w", encoding="utf-8") as f:
-        f.write(content)
-    
-    # 准备胶囊数据的JSON字符串
-    capsules_json = json.dumps([
-        {k: v for k, v in capsule.items() if k != "local_data_folder"}
-        for capsule in capsules
-    ])
-    
-    # 修改脚本以加载预定义的胶囊列表
-    modified_load_bixbench = """
-    async def load_bixbench(self) -> list[dict[str, Any]]:
-        \"\"\"Load BixBench dataset and process all capsules.\"\"\"
-        # 使用预定义的胶囊列表
-        bixbench = json.loads('{0}')
+async def run_selected_capsules(config_path, capsules):
+    """直接运行指定的胶囊，无需修改generate_trajectories.py文件"""
+    try:
+        # 导入所需模块
+        from bixbench.generate_trajectories import TrajectoryGenerator
+        import importlib.util
         
-        # Process all capsules concurrently
-        tasks = [self.process_capsule(capsule) for capsule in bixbench]
-        await asyncio.gather(*tasks)
+        # 加载配置
+        config_path = Path(config_path)
         
-        return bixbench
-    """.format(capsules_json.replace("'", "\\'").replace('"', '\\"'))
-    
-    # 替换load_bixbench方法
-    import re
-    pattern = r"async def load_bixbench.*?return bixbench\n"
-    modified_content = re.sub(pattern, modified_load_bixbench, content, flags=re.DOTALL)
-    
-    # 写入修改后的脚本
-    with open(generate_trajectories_path, "w", encoding="utf-8") as f:
-        f.write(modified_content)
-    
-    return generate_trajectories_path
-
-
-def restore_generate_trajectories_script():
-    """还原generate_trajectories.py脚本"""
-    script_dir = Path(__file__).parent
-    generate_trajectories_path = script_dir / "generate_trajectories.py"
-    backup_path = script_dir / "generate_trajectories.py.bak"
-    
-    if backup_path.exists():
-        with open(backup_path, "r", encoding="utf-8") as f:
-            original_content = f.read()
+        # 创建TrajectoryGenerator实例
+        generator = TrajectoryGenerator(config_path=config_path)
         
-        with open(generate_trajectories_path, "w", encoding="utf-8") as f:
-            f.write(original_content)
+        # 处理胶囊数据（确保必要的数据已准备好）
+        for capsule in capsules:
+            await generator.process_capsule(capsule)
         
-        backup_path.unlink()  # 删除备份文件
+        # 设置环境并运行批处理
+        environments = [generator.environment_factory(capsule) for capsule in capsules]
+        
+        # 批量处理环境
+        print(f"开始处理 {len(environments)} 个胶囊...")
+        results = await generator.batch_rollout(environments)
+        
+        # 存储轨迹
+        for trajectory, env in results:
+            await generator.store_trajectory(trajectory, env)
+            
+        return True
+    except Exception as e:
+        print(f"运行指定胶囊时出错: {e}")
+        return False
 
 
 def run_generate_trajectories(config_path):
@@ -235,39 +208,23 @@ async def main():
     print(f"- 轨迹生成配置: {trajectory_config_path}")
     print(f"- 后处理配置: {postprocessing_config_path}")
     
-    # 加载并过滤胶囊
+    # 轨迹生成阶段
     if not args.skip_generation:
-        capsules = await load_and_filter_capsules(args)
-        print(f"找到 {len(capsules)} 个胶囊")
-        
-        # 如果指定了short_ids，修改generate_trajectories.py脚本
+        # 如果指定了short_ids，使用专用函数运行
         if args.short_ids and len(args.short_ids) > 0:
+            capsules = await load_and_filter_capsules(args)
+            print(f"找到 {len(capsules)} 个胶囊")
             print(f"将运行以下胶囊: {[c['short_id'] for c in capsules]}")
-            try:
-                modify_generate_trajectories_script(capsules)
-                print("已临时修改generate_trajectories.py以运行指定胶囊")
-                
-                # 运行generate_trajectories.py
-                success = run_generate_trajectories(trajectory_config_path)
-                
-                # 还原脚本
-                restore_generate_trajectories_script()
-                print("已还原generate_trajectories.py")
-                
-                if not success:
-                    return
-            except Exception as e:
-                print(f"修改脚本时出错: {e}")
-                # 确保脚本被还原
-                restore_generate_trajectories_script()
-                return
+            success = await run_selected_capsules(trajectory_config_path, capsules)
         else:
-            # 直接运行generate_trajectories.py
+            # 运行所有胶囊
             success = run_generate_trajectories(trajectory_config_path)
-            if not success:
-                return
+        
+        if not success:
+            print("轨迹生成失败，退出程序")
+            return
     
-    # 运行后处理
+    # 后处理阶段
     if not args.skip_postprocessing:
         print("开始后处理...")
         run_postprocessing(postprocessing_config_path)

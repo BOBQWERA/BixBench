@@ -8,6 +8,10 @@ import os
 from pathlib import Path
 from typing import Any
 
+import litellm
+
+litellm.ssl_verify = False
+litellm.api_base = "https://gadget.shengchengshidai.com/v1"
 import pandas as pd
 import yaml
 from fhda.utils import view_notebook

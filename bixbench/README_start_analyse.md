@@ -8,6 +8,7 @@
 2. 支持指定胶囊：可以通过 short_id 指定运行特定的胶囊或胶囊列表
 3. 一键式流程：自动执行轨迹生成和后处理评估
 4. 灵活控制：支持跳过特定阶段，如轨迹生成或后处理
+5. 无侵入性实现：通过直接调用 TrajectoryGenerator 类而非修改脚本文件
 
 ## 使用方法
 
@@ -60,8 +61,15 @@ python bixbench/start_analyse.py --run_name bixbench-run-gpt4o --llm_model gpt-4
 
 1. **配置生成阶段**：脚本根据参数生成适当的 YAML 配置文件
 2. **胶囊筛选阶段**：如果指定了 short_ids，脚本会筛选出对应的胶囊
-3. **轨迹生成阶段**：脚本运行 generate_trajectories.py 生成轨迹
+3. **轨迹生成阶段**：
+   - 对于特定胶囊：直接导入并使用 TrajectoryGenerator 类进行处理
+   - 对于所有胶囊：调用标准的 generate_trajectories.py 脚本
 4. **后处理评估阶段**：脚本运行 postprocessing.py 进行评估和可视化
+
+## 技术实现
+
+- 针对特定胶囊的运行采用了直接导入并使用 TrajectoryGenerator 类的方式，而非修改源文件
+- 这种实现方式更加优雅，无侵入性，不会对原有代码产生副作用
 
 ## 注意事项
 
