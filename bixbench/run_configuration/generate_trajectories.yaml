@@ -1,10 +1,10 @@
-run_name: "bixbench-run-3-claude3.7"
+run_name: "bixbench-run-1-gpt4o" # TODO: 可修改的
 
 agent:
   agent_type: "ReActAgent"
   agent_kwargs:
     llm_model:
-      name: "claude-3-7-sonnet-20250219"
+      name: "gpt-4o" # TODO: 可修改的
       parallel_tool_calls: False 
       num_retries: 5
       temperature: 1.0 
@@ -19,9 +19,9 @@ notebook:
   language: "python"
 
 capsule:
-  mode: "open"
+  mode: "open" # TODO: 可修改的 open/mcq
   include_refusal_option: true
-  system_prompt: "CAPSULE_SYSTEM_PROMPT_OPEN"
+  system_prompt: "CAPSULE_SYSTEM_PROMPT_OPEN" # TODO: 可修改的 CAPSULE_SYSTEM_PROMPT_OPEN/CAPSULE_SYSTEM_PROMPT_MCQ
   prompt_templates:
     mcq: "MCQ_PROMPT_TEMPLATE"
     open: "OPEN_PROMPT_TEMPLATE"
