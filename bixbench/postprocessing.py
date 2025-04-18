@@ -350,13 +350,21 @@ def export_evaluation_data(eval_df: pd.DataFrame, results_dir: str) -> None:
         for _, row in df.iterrows():
             row_dict = {}
             for col, val in row.items():
-                # 处理非JSON可序列化的值
-                if pd.isna(val):
+                # 处理不同类型的值，确保JSON可序列化
+                if isinstance(val, (pd.Series, pd.DataFrame, list, dict)):
+                    # 对于pandas Series、DataFrame或复杂结构，转换为字符串
+                    row_dict[col] = str(val)
+                elif hasattr(val, '__array__'):  
+                    # 处理numpy数组和类似对象
+                    row_dict[col] = str(val)
+                elif val is None or (isinstance(val, float) and pd.isna(val)):
+                    # 处理None和NaN
                     row_dict[col] = None
                 elif isinstance(val, (bool, int, float, str)):
+                    # 保留基本数据类型
                     row_dict[col] = val
                 else:
-                    # 对于复杂对象，转换为字符串
+                    # 其他所有类型转为字符串
                     row_dict[col] = str(val)
             result.append(row_dict)
         return result
