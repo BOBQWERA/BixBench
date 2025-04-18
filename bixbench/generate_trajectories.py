@@ -10,7 +10,7 @@ from typing import Any
 import datasets
 import litellm
 litellm.ssl_verify = False
-
+litellm.api_base = "https://gadget.shengchengshidai.com/v1"
 import yaml
 from fhda.data_analysis_env import DataAnalysisEnv
 from fhda.utils import collect_notebook_stats, load_mcq
