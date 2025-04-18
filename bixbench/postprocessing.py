@@ -339,7 +339,7 @@ if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Process BixBench evaluation data")
     parser.add_argument(
-        "config_file", type=str, help="Path to the YAML configuration file"
+        "--config_file", type=str, help="Path to the YAML configuration file"
     )
 
     args = parser.parse_args()
