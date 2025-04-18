@@ -9,6 +9,7 @@
 3. 一键式流程：自动执行轨迹生成和后处理评估
 4. 灵活控制：支持跳过特定阶段，如轨迹生成或后处理
 5. 无侵入性实现：通过直接调用 TrajectoryGenerator 类而非修改脚本文件
+6. 优化数据导出：生成精简的CSV和JSON格式评估数据，方便后续分析
 
 ## 使用方法
 
@@ -42,7 +43,7 @@ python bixbench/start_analyse.py --run_name bixbench-run-gpt4o --llm_model gpt-4
 2. 运行特定模型评测特定胶囊，并使用 MCQ 模式：
 
 ```bash
-python bixbench/start_analyse.py --run_name bixbench-run-claude --llm_model claude-3-sonnet --capsule_mode mcq --short_ids capsule1 capsule2
+python bixbench/start_analyse.py --run_name bixbench-run-claude --llm_model claude-3-sonnet --capsule_mode mcq --short_ids bix-1 bix-3
 ```
 
 3. 仅生成轨迹，不进行后处理：
@@ -65,11 +66,21 @@ python bixbench/start_analyse.py --run_name bixbench-run-gpt4o --llm_model gpt-4
    - 对于特定胶囊：直接导入并使用 TrajectoryGenerator 类进行处理
    - 对于所有胶囊：调用标准的 generate_trajectories.py 脚本
 4. **后处理评估阶段**：脚本运行 postprocessing.py 进行评估和可视化
+5. **数据导出阶段**：生成精简的评估数据
+   - CSV格式：移除了 md_notebook、md_images 和 prompt 列
+   - JSON格式：结构化数据，便于程序化分析
 
 ## 技术实现
 
 - 针对特定胶囊的运行采用了直接导入并使用 TrajectoryGenerator 类的方式，而非修改源文件
 - 这种实现方式更加优雅，无侵入性，不会对原有代码产生副作用
+- 优化的数据导出处理了各种数据类型，确保 JSON 序列化的兼容性
+
+## 数据输出
+
+评估结果将以两种格式输出到 `bixbench_results_[RUN_NAME]` 目录中：
+1. **CSV格式** (`eval_df_new.csv`)：包含所有评估指标，但移除了体积较大的列
+2. **JSON格式** (`eval_df_new.json`)：与CSV内容相同，但使用JSON格式，便于程序化处理
 
 ## 注意事项
 
